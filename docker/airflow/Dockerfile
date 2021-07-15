@@ -8,4 +8,7 @@ RUN apt-get update && apt-get install -y \
 
 USER airflow
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+# Install the requirements and create a folder ~/.kaggle to avoid
+# issues with the Kaggle API's authentication
+RUN pip install -r /tmp/requirements.txt \
+    && mkdir ~/.kaggle

@@ -1,6 +1,7 @@
 from airflow import DAG
 from datetime import datetime
 
+from airflow.models import Variable
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.bash import BashOperator
 from airflow.operators.python_operator import PythonOperator
@@ -9,10 +10,12 @@ from kaggle_elt.kaggle_dbt_source import KaggleDbtSource, read_kaggle_dbt_source
 from kaggle_elt.kaggle_dataset_downloader import download_kaggle_file_with_credentials
 from kaggle_elt.kaggle_dbt_loader import load_csv_to_postgres
 
+# Connections
 kaggle_api_conn = BaseHook.get_connection("kaggle_api")
 kaggle_db_conn = BaseHook.get_connection("postgres_db")
-
-dbt_path = '/opt/dbt' # This should be a variable in airflow
+# Variables
+dbt_path = Variable.get('dbt_path')
+dbt_project = Variable.get('dbt_project')
 
 default_args = {'owner': 'airflow', 'start_date': datetime(2021, 1, 1)}
 
@@ -51,7 +54,7 @@ def create_kaggle_elt_dag(dataset_cfg, schedule, default_args):
     with dag:
         transform_op = BashOperator(
             task_id=f'run_dbt_{dataset_cfg.name}',
-            bash_command=f"/home/airflow/.local/bin/dbt --partial-parse ls --project-dir {dbt_path}/kaggle -m {dataset_cfg.name}",
+            bash_command=f"/home/airflow/.local/bin/dbt --partial-parse ls --project-dir {dbt_path}/{dbt_project} -m {dataset_cfg.name}",
             env={
                 'DBT_PROFILES_DIR': dbt_path,
                 'DBT_DB_HOST': kaggle_db_conn.host,
@@ -59,7 +62,7 @@ def create_kaggle_elt_dag(dataset_cfg, schedule, default_args):
                 'DBT_DB_PASSWORD': kaggle_db_conn.password,
                 'DWH_PORT': str(kaggle_db_conn.port),
                 'DBT_DWH_DBNAME': kaggle_db_conn.schema,
-                'DBT_SCHEMA': 'kaggle'
+                'DBT_SCHEMA': dataset_cfg.schema
             },
             dag=dag
         )
@@ -69,7 +72,7 @@ def create_kaggle_elt_dag(dataset_cfg, schedule, default_args):
             extract_op >> loader_op >> transform_op
     return dag
 
-dataset_configs = read_kaggle_dbt_source_configs(dbt_path)
+dataset_configs = read_kaggle_dbt_source_configs(dbt_path, dbt_project)
 
 for dbt_dataset_name, dataset_cfg in dataset_configs.items():
     globals()[dbt_dataset_name] = create_kaggle_elt_dag(dataset_cfg, None, default_args)

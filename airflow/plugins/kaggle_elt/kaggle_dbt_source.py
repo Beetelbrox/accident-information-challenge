@@ -44,10 +44,11 @@ class KaggleDbtSource:
     def get_table(self, table_name: str) -> KaggleDbtSourceTable:
         return self.tables[table_name]
 
-def read_kaggle_dbt_source_configs(dbt_project_path: str) -> KaggleDbtSource:
+def read_kaggle_dbt_source_configs(dbt_project_path: str, dbt_project_name: str) -> KaggleDbtSource:
     dbt_source_cfgs = {}
-    for ds in os.listdir(f'{dbt_project_path}/kaggle/models/'):
-        with open(f'{dbt_project_path}/kaggle/models/{ds}/sources/src_{ds}.yml', 'r') as ifile:
+    dbt_models_path = f'{dbt_project_path}/{dbt_project_name}/models'
+    for ds in os.listdir(dbt_models_path):
+        with open(f'{dbt_models_path}/{ds}/sources/src_{ds}.yml', 'r') as ifile:
             try:
                 dataset_cfg = KaggleDbtSource(yaml.safe_load(ifile))
             except yaml.YAMLError as e:

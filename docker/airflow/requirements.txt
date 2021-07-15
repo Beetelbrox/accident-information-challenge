@@ -1,3 +1,2 @@
 dbt
-frictionless
 kaggle
