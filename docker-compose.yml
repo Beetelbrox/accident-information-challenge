@@ -1,0 +1,111 @@
+version: '3'
+
+x-airflow-common:
+    &airflow-common
+    image: airflow-dbt:0.0.1
+    environment:
+      &airflow-common-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
+      AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
+      _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    #   DBT_BASE_PATH: '/opt/dbt/'
+    #   DBT_PROFILES_DIR: ${DBT_BASE_PATH}
+    #   DBT_PROJECT_DIR: ${DBT_BASE_PATH}/kaggle
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./dbt:/opt/dbt
+    user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+
+services:
+    airflow-db:
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: airflow
+            POSTGRES_PASSWORD: airflow
+            POSTGRES_DB: airflow
+        ports:
+            - 5432:5432
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "airflow"]
+            interval: 5s
+            retries: 5
+        restart: always
+
+    airflow-webserver:
+        <<: *airflow-common
+        command: webserver
+        ports:
+            - 8080:8080
+        #restart_policy:
+        #    condition: on-failure
+        depends_on:
+            - airflow-db
+            - airflow-scheduler
+        healthcheck:
+            test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    airflow-scheduler:
+        <<: *airflow-common
+        command: scheduler
+        #restart_policy:
+        #    condition: on-failure
+        depends_on:
+            - airflow-db
+        healthcheck:
+            test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+            interval: 10s
+            timeout: 10s
+            retries: 5
+        restart: always
+
+    airflow-init:
+        <<: *airflow-common
+        command: version
+        environment:
+            <<: *airflow-common-env
+            _AIRFLOW_DB_UPGRADE: 'true'
+            _AIRFLOW_WWW_USER_CREATE: 'true'
+            _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+            _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    
+    airflow-add-connections:
+        <<: *airflow-common
+        command: 'airflow connections add "postgres_db" --conn-uri "postgresql+psycopg2://admin:admin@postgres_db:5433/postgres"'
+        depends_on:
+            - airflow-webserver
+    
+    postgres_db:
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: admin
+            POSTGRES_DB: postgres
+        ports:
+            - 5433:5433
+        command: -p 5433
+
+    # dash:
+    #     image: python-dash
+    #     command: python /opt/dash/app.py
+    #     environment:
+    #         DASH_DEBUG_MODE: "true"
+    #     volumes:
+    #         - ./dash:/opt/dash
+    #     ports:
+    #         - 8050:8050
+        

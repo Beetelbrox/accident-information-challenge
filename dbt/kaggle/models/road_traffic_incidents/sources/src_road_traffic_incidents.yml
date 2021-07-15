@@ -1,0 +1,54 @@
+version: 2
+
+sources:
+  - name: road_traffic_incidents
+    schema: kaggle_raw
+    meta:
+      kaggle_dataset: 'tsiaras/uk-road-safety-accidents-and-vehicles'
+      encoding: 'latin-1'
+    tables:
+      - name: accident_information
+        meta:
+          kaggle_file_name: 'Accident_Information.csv'
+        columns:
+          - name: accident_id
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Accident_Index'
+          - name: accident_severity
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Accident_Severity'
+          - name: accident_date
+            data_type: DATE
+            meta:
+              kaggle_column_name: 'Date'
+          - name: accident_day_of_week
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Day_of_Week'
+
+      - name: vehicle_information
+        meta:
+          kaggle_file_name: 'Vehicle_Information.csv'
+        columns:
+          - name: accident_id
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Accident_Index'
+          - name: driver_age_band
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Age_Band_of_Driver'
+          - name: vehicle_age
+            data_type: SMALLINT
+            meta:
+              kaggle_column_name: 'Age_of_Vehicle'
+          - name: driver_home_area_type
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Driver_Home_Area_Type'
+          - name: driver_journey_purpose
+            data_type: VARCHAR(50)
+            meta:
+              kaggle_column_name: 'Journey_Purpose_of_Driver'

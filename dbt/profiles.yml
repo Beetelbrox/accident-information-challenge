@@ -1,0 +1,21 @@
+kaggle_db:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('DBT_DB_HOST') }}"
+      user: "{{ env_var('DBT_DB_USER') }}"
+      password: "{{ env_var('DBT_DB_PASSWORD') }}"
+      port: "{{ env_var('DWH_PORT', '5433') | as_number }}"
+      dbname: "{{ env_var('DBT_DWH_DBNAME') }}"
+      schema: "{{ env_var('DBT_SCHEMA') }}"
+      threads: 4
+    local:
+      type: postgres
+      host: localhost
+      user: admin
+      password: admin
+      port: 5433
+      dbname: postgres
+      schema: kaggle
+      threads: 4
