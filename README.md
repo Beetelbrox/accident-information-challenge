@@ -1,1 +1,2 @@
-# accident-information-challenge
+# Accident Information Challenge
+This repo contains a solution to the Accident Information challenge. In this challenge we're asked to build a data pipeline which downloads the [UK Road Safety: Traffic Accidents and Vehicles](https://www.kaggle.com/tsiaras/uk-road-safety-accidents-and-vehicles), loads a subset of its columns into a postgres database and visualizes several calculated metrics.
