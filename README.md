@@ -69,8 +69,23 @@ They are the de-facto tool for containerizing and deploying applications. Airflo
 #### Dash
 Because some degree of data visualization es required, we chose Dash for its simplicity and flexibility. We did not want to have a python script dumping images into a folder, so Dash allows you to create visualizations in python & plotly and publish them as a web page. We explored several other (free) visualization tools like Grafana or Superset that had nicer visuals or more features, but they required too much setup and/or were too specialized (Grafana struggles with data other than time series) so we chose simplicity.
 
+## System services
+The proposed system has the following containerized services, deployed via docker-compose:
+ * **airflow-db**: Postgres database storing Airflow's metadata.
+ * **airflow-scheduler**: Airflow's scheduler.
+ * **airflow-webserver**: Airflow's webserver. Web UI reachable @ http://localhost:8080, log in using the default credentials `airflow:airflow`.
+ * **airflow-init**: Airflow initializer service. Initializes the database and creates default users.
+ * **airflow-setup**: Airflow bootstrap service. Loads connections & variables into Airflow so they don't have to be manually introduced.
+ * **postgres_db**: 'production' target database, for data load & dbt. Reachable @ `admin:admin@localhost:5433/postgres`.
+ * **dash**: Dash webapp. Web reachable @ http://localhost:8050
+
+ ## Extract, Load & Transform
+The main components of the ELT pipelines are implemented as follows:
+### Extract
+
+
 ### On credential management
-For this challenge we are deploying locally several services that require credentials: 2 postgres databases, airflow, dbt. We have tried to minimize the amount of hardcoded credentials and made it as production-like as possible (within reason) by for example parametrizing dbt profiles to pull credentials from environment variables that are passed into the airflow operator and using airflow connections. Nevertheless, the docker-compose and the bootstrap scripts contain hardcoded (mostly default) credentials to simulate an user introducing them in airflow or a secrets service providing them.  
+For this challenge we are deploying locally several services that require credentials: 2 postgres databases, airflow, dbt. We have tried to minimize the amount of hardcoded credentials and made it as production-like as possible (within reason) by for example using airflow connections to store database credentials and parametrizing dbt profiles to pull credentials from environment variables that are passed into the airflow operator. Nevertheless, because we didn't want the end user to manually introduce credentials, the docker-compose and the bootstrap scripts contain hardcoded (mostly default) credentials to simulate an user introducing them in airflow or a secrets service providing them.  
 The only credential that needs to be provided by the user is the Kaggle API key, which we are not able to fake so a real one needs to be used.
 
 ### On environment management & the DockerOperator
@@ -92,7 +107,7 @@ Before being able to extract, load & transform any data from Kaggle you'll need 
 The following steps will allow you to spin up the different containers that compose the system:
 1. Clone this repository: `git clone https://github.com/Beetelbrox/accident-information-challenge.git`
 2. Navigate to the root folder: `cd accident-information-challenge`
-3. Build the docker images: `./build_docker_images.sh`
+3. Build the docker images: `./build_docker_images.sh`.
 4. Run the start script: `./start_services.sh`. Bear in mind that by default this will run the docker-compose in the foreground, so you might want to do this in a separate terminal.
 If everything goes well, once the initial setup is done you'll be able to reach the Airflow web UI @ http://localhost:8080, where you'll be prompted to provide an username and a password. It's set to the default: `airflow:airflow`.  
 ### Adding the Kaggle API credentials
