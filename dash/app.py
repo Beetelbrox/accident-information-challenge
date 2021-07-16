@@ -11,14 +11,6 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-# df = pd.DataFrame({
-#     "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-#     "Amount": [4, 1, 2, 2, 4, 5],
-#     "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-# })
-
 def build_pareto_chart(
         df: pd.DataFrame,
         x_axis: str,
@@ -68,8 +60,9 @@ cat_orders = {
     ]
 }
 
-
+# Filter out the rows to those where vehicle age is twenty or less
 filtered_accidents = df[(df['vehicle_age'] <= 20)]
+# Plot the heatmap
 heatmap_fig = px.density_heatmap(
         filtered_accidents,
         x='driver_age_band',
@@ -87,24 +80,6 @@ heatmap_fig = px.density_heatmap(
     )
 heatmap_fig.update_coloraxes(
     colorbar_tickformat=',.1%')
-
-# t = sa.text("SELECT * FROM kaggle.pre_road_traffic_incidents__age_bands_vehicle_age WHERE COALESCE(age_of_vehicle, 0) <= 20")
-# with pg_engine.connect() as conn:
-#     df = pd.read_sql(t, conn, index_col='age_band_of_driver')
-
-
-
-# fig = px.bar(df,
-#     x=df.index,
-#     y="pct_accidents",
-#     color='age_of_vehicle',
-#     color_continuous_scale='thermal',
-#     color_continuous_midpoint=5,
-#     category_orders=cat_orders)
-
-# fig_abs = px.bar(df, x=df.index, y="num_accidents", color='age_of_vehicle', color_continuous_scale='RdYlBu', category_orders=cat_orders)
-
-# fig_hm = px.density_heatmap(df, x=df.index, y="age_of_vehicle", nbinsy=20, z="num_accidents", histfunc="sum", category_orders=cat_orders)
 
 app.layout = html.Div(children=[
     html.H1(children='Accident Information Challenge'),
@@ -138,20 +113,7 @@ app.layout = html.Div(children=[
         The vehicle age with most accidents is 0, as expected as we have a large amount of vehicles for which we don't have the age data. Regardless, it seems that accidents occur
         somewhat more frequently when cars are new. It seems that younger drivers with newer cars are slightly more likely to have an accident, although this factor is confounded with the amount of car trips
         that each age band does, so we can't draw any definitive conclusion on this topic.\n\n
-    '''),
-    html.Div(children='''
-        As it would be expected, it seems that newyounger drivers with newer cars seem t
-    '''),
-
-    # dcc.Graph(
-    #     id='abs',
-    #     figure=fig_abs
-    # ),
-
-    # dcc.Graph(
-    #     id='geatmap',
-    #     figure=fig_hm
-    # )
+    ''')
 ])
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ def download_kaggle_file_with_credentials(
         quiet: bool=False,
         unzip: bool=True
     ) -> None:
+    """Downloads the specified file from the specified dataset using the provided kaggle credentials"""
     # If we want to avoid re-downloading when unzipping we need to check for the uncompressed files, as dataset_download_file
     # only does so for the compressed one.
     if not force and unzip:
@@ -30,6 +31,7 @@ def download_kaggle_file_with_credentials(
         os.remove(zipped_file_path)
 
 def download_kaggle_file(dataset: str, file: str, download_path: str, force: bool, quiet: bool) -> None:
+    """Downloads the specified file from the specified dataset. Assumes that valid credentials are available as env variables"""
     # We need to import the Kaggle api here because for some reason it tries to authenticate as soon as you import the
     # package (https://github.com/Kaggle/kaggle-api/blob/master/kaggle/__init__.py) and will crash the DAG parse if we
     # import it on the file header

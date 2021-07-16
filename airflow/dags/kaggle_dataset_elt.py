@@ -20,6 +20,7 @@ dbt_project = Variable.get('dbt_project')
 default_args = {'owner': 'airflow', 'start_date': datetime(2021, 1, 1)}
 
 def create_kaggle_dataset_table_extractor(dataset_table_name: str, dataset_cfg: KaggleDbtSource, download_dir: str = '/tmp') -> PythonOperator:
+    """Builds an airflow operator that downloads the kaggle dataset specified in the dbt source"""
     table_cfg = dataset_cfg.get_table(dataset_table_name)
     download_path = f'{download_dir}/{dataset_cfg.name}'
     return PythonOperator(
@@ -35,6 +36,7 @@ def create_kaggle_dataset_table_extractor(dataset_table_name: str, dataset_cfg: 
     )
 
 def create_kaggle_dataset_table_loader(dataset_table_name: str, dataset_cfg: KaggleDbtSource, download_dir='/tmp') -> PythonOperator:
+    """Builds an airflow operator that loads into the database the kaggle dataset specified in the dbt source"""
     return PythonOperator(
         task_id=f"load_{dataset_table_name}",
         python_callable=load_csv_to_postgres,
@@ -47,6 +49,7 @@ def create_kaggle_dataset_table_loader(dataset_table_name: str, dataset_cfg: Kag
     )
 
 def create_dbt_operator(dbt_action: str, dbt_selector: str, dataset_cfg: KaggleDbtSource) -> BashOperator:
+    """Builds an airflow operator that runs models or tests in dbt with the global db credentials"""
     if dbt_action == 'test':
         task_id = f"dbt_test_{dbt_selector.split('.')[-1]}"
     else:
@@ -66,12 +69,15 @@ def create_dbt_operator(dbt_action: str, dbt_selector: str, dataset_cfg: KaggleD
     )
 
 def create_kaggle_dataset_table_tester(dataset_table_name: str, dataset_cfg: KaggleDbtSource):
+    """Builds an airflow operator that runs dbt tests"""
     return create_dbt_operator('test', f'source:{dataset_cfg.name}.{dataset_table_name}', dataset_cfg)
 
 def create_dbt_runner(dataset_cfg: KaggleDbtSource):
+    """Builds an airflow operator that runs all dbt models that depend on a given source"""
     return create_dbt_operator('run', dataset_cfg.name, dataset_cfg)
 
 def create_kaggle_elt_dag(dataset_cfg, schedule, default_args):
+    """Builds an Airflow ELT DAG based on the configuration specified in the dbt source"""
     dag = DAG(f'{dataset_cfg.name}_elt', schedule_interval=schedule, default_args=default_args)
     with dag:
         transform_op = create_dbt_runner(dataset_cfg)
@@ -82,7 +88,9 @@ def create_kaggle_elt_dag(dataset_cfg, schedule, default_args):
             extract_op >> loader_op >> tester_op >> transform_op
     return dag
 
+# Read the configs
 dataset_configs = read_kaggle_dbt_source_configs(dbt_path, dbt_project)
 
+# For each one of the configs, build an airflow DAG
 for dbt_dataset_name, dataset_cfg in dataset_configs.items():
     globals()[dbt_dataset_name] = create_kaggle_elt_dag(dataset_cfg, None, default_args)

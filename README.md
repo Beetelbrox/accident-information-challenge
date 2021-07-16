@@ -147,6 +147,6 @@ The loaded raw data is available in the following tables:
  * `kaggle_raw.vehicle_information`
 
 ## Visualizing the data
-The visualizations together with their corresponding explanation are published by Dash to http://localhost:8050. Our current dash implementation has a tendency to crash, so if the webpage is not reachable once the pipeline has finished loading please run `docker-compose up dash` in a separate terminal to re-start the service.
+The visualizations together with their corresponding explanation are published by Dash to http://localhost:8050. Our current dash implementation is not particularly stable, so if the webpage is not reachable once the pipeline has finished loading please run `docker-compose up dash` in a separate terminal to re-start the service.
 
 
