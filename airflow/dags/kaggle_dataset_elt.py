@@ -53,7 +53,7 @@ def create_dbt_operator(dbt_action: str, dbt_selector: str, dataset_cfg: KaggleD
         task_id = f'dbt_{dbt_action}_{dataset_cfg.name}'
     return BashOperator(
         task_id=task_id,
-        bash_command=f"/home/airflow/.local/bin/dbt --partial-parse {dbt_action} --project-dir {dbt_path}/{dbt_project} -m {dbt_selector}",
+        bash_command=f"/home/airflow/.local/bin/dbt {dbt_action} --project-dir {dbt_path}/{dbt_project} -m {dbt_selector}",
         env={
             'DBT_PROFILES_DIR': dbt_path,
             'DBT_DB_HOST': kaggle_db_conn.host,
@@ -61,7 +61,7 @@ def create_dbt_operator(dbt_action: str, dbt_selector: str, dataset_cfg: KaggleD
             'DBT_DB_PASSWORD': kaggle_db_conn.password,
             'DWH_PORT': str(kaggle_db_conn.port),
             'DBT_DWH_DBNAME': kaggle_db_conn.schema,
-            'DBT_SCHEMA': dataset_cfg.schema
+            'DBT_SCHEMA': dbt_project
         }
     )
 

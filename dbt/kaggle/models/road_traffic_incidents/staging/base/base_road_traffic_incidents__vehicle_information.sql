@@ -2,11 +2,11 @@ WITH source AS (
     SELECT * FROM {{ source('road_traffic_incidents', 'vehicle_information') }}
 ),
     base AS (
-        SELECT accident_index AS accident_id,
-               age_band_of_driver,
-               age_of_vehicle,
-               driver_home_area_type,
-               journey_purpose_of_driver
+        SELECT accident_id :: VARCHAR(13),
+               driver_age_band :: VARCHAR(30),
+               vehicle_age :: INTEGER,
+               driver_home_area_type :: VARCHAR(30),
+               driver_journey_purpose :: VARCHAR(30)
           FROM source
     )
 SELECT *

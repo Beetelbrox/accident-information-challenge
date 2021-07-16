@@ -8,7 +8,7 @@ x-airflow-common:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       AIRFLOW__CORE__FERNET_KEY: ''
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      #AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
       AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
@@ -78,6 +78,10 @@ services:
     airflow-setup:
         <<: *airflow-common
         entrypoint: '/opt/airflow/scripts/airflow_setup.sh'
+        environment:
+            <<: *airflow-common-env
+            DBT_PATH: '/opt/dbt'
+            DBT_PROJECT: 'kaggle'
         volumes:
             - ./airflow/scripts:/opt/airflow/scripts
     

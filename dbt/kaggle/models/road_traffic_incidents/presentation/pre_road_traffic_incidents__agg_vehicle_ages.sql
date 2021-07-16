@@ -1,3 +1,9 @@
+{{
+    config(
+        enabled=False
+    )
+}}
+
 WITH road_traffic_incidents AS (
     SELECT * FROM {{ ref('stg_road_traffic_incidents__road_traffic_incidents') }}
 ),

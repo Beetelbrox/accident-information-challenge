@@ -10,36 +10,74 @@ sources:
       - name: accident_information
         meta:
           kaggle_file_name: 'Accident_Information.csv'
+          expected_rows: 2047256
+        tests:
+          - assert_num_loaded_rows
         columns:
           - name: accident_id
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Accident_Index'
+            tests:
+              - unique
+              - not_null
           - name: accident_severity
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Accident_Severity'
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Slight', 'Serious', 'Fatal']
           - name: accident_date
             data_type: DATE
             meta:
               kaggle_column_name: 'Date'
+            tests:
+              - not_null
           - name: accident_day_of_week
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Day_of_Week'
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
       - name: vehicle_information
         meta:
           kaggle_file_name: 'Vehicle_Information.csv'
+          expected_rows: 2177205
+        tests:
+          - assert_num_loaded_rows
         columns:
           - name: accident_id
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Accident_Index'
+            tests:
+              - not_null
           - name: driver_age_band
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Age_Band_of_Driver'
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [
+                    '0 - 5',
+                    '6 - 10',
+                    '11 - 15',
+                    '16 - 20',
+                    '21 - 25',
+                    '26 - 35',
+                    '36 - 45',
+                    '46 - 55',
+                    '56 - 65',
+                    '66 - 75',
+                    'Over 75',
+                    'Data missing or out of range'
+                  ]
           - name: vehicle_age
             data_type: SMALLINT
             meta:
@@ -48,7 +86,24 @@ sources:
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Driver_Home_Area_Type'
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Small town', 'Rural', 'Urban area', 'Data missing or out of range']
           - name: driver_journey_purpose
             data_type: VARCHAR(50)
             meta:
               kaggle_column_name: 'Journey_Purpose_of_Driver'
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [
+                    'Other/Not known (2005-10)',
+                    'Data missing or out of range',
+                    'Taking pupil to/from school',
+                    'Other',
+                    'Journey as part of work',
+                    'Pupil riding to/from school',
+                    'Commuting to/from work',
+                    'Not known'
+                  ]

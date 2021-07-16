@@ -1,3 +1,9 @@
+{{
+    config(
+        enabled=False
+    )
+}}
+
 WITH road_traffic_incidents AS (
     SELECT DISTINCT accident_id,
                     age_band_of_driver,

@@ -14,6 +14,7 @@ class CSVSanitizer(io.TextIOBase):
     
     def _process_header(self, column_name_mapping: Dict[str, str]) -> str:
         header_tokens = next(self._csv_iter)
+        # Initialize the buffer with the sanitized header
         self._buffer += self._build_sanitized_row((column_name_mapping[c] for c in header_tokens if c in column_name_mapping))
         return [col in column_name_mapping for col in header_tokens]
     
