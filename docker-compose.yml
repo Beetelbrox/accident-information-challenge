@@ -96,13 +96,12 @@ services:
             - 5433:5433
         command: -p 5433
 
-    # dash:
-    #     image: python-dash
-    #     command: python /opt/dash/app.py
-    #     environment:
-    #         DASH_DEBUG_MODE: "true"
-    #     volumes:
-    #         - ./dash:/opt/dash
-    #     ports:
-    #         - 8050:8050
-        
+    dash:
+        image: python-dash:0.0.1
+        command: python /opt/dash/app.py
+        environment:
+            DASH_DEBUG_MODE: "true"
+        volumes:
+            - ./dash:/opt/dash
+        ports:
+            - 8050:8050
