@@ -67,7 +67,7 @@ The Data Buding Tool (or *dbt*) provides the *T* of *ELT*, and it has gained a l
 They are the de-facto tool for containerizing and deploying applications. Airflow provides a quite nice docker-compose that we had based our implementation on.
 
 #### Dash
-Because some degree of data visualization es required, we chose Dash for its simplicity and flexibility. We did not want to have a python script dumping images into a folder, so Dash allows you to create visualizations in python & plotly and publish them as a web page. We explored several other (free) visualization tools like Grafana or Superset that had nicer visuals or more features, but they required too much setup and/or were too specialized (Grafana struggles with data other than time series) so we chose simplicity.
+In order to generate and display the required visualization, we chose Dash for its simplicity and flexibility. We did not want to have a python script dumping images into a folder, so Dash allows you to create visualizations in python & plotly and publish them as a web page. We wanted to emulate a production environment where dashboards would be built from data in the database using some kind of visualization/BI tool like Looker or Tableau. We explored several other (free) visualization tools like Grafana or Superset that had nicer visuals or more features, but they required too much setup and/or were too specialized (Grafana struggles with data other than time series) so we chose simplicity.
 
 ## System services
 The proposed system has the following containerized services, deployed via docker-compose:
@@ -86,7 +86,7 @@ Files from a given Kaggle dataset are downloaded as CSV files using the Kaggle A
 The names of the target dataset and its files are defined as part of the corresponding dbt source's metadata, which is collected and passed to the extractor by Airflow when building the DAG.
 
 ### Load
-The downloaded CSV files are loaded into the postgres database using the `psycopg2` adapter. Data is loaded using the `COPY FROM` statement, which is postgres' recommended way of loading data in bulk. Although we are using ELT, the data in the different files needs to be slightly sanitized in order to be loaded into the database without errors (mostly field names & quotes). In addition, the challenge statement asks to load into the database only a subset of the columns, so we can save time and resources by only loading the necessary fields. Because we want to be able to run an arbitrary number of these load tasks in parallel, loading the whole files in memory to process them can be prohibitive. In order to avoid Out Of Memory errors, we implemented an adapter for python's CSV reader which allows sanitizing the data and filtering out unnecessary fields in an streaming (buffered reader-like) fashion.  
+The downloaded CSV files are loaded into the postgres database using the `psycopg2` adapter. With the aim of improving performance, the load is performed using the `COPY` statement, postgres' recommended way of loading data in bulk. Although we are using ELT, the data in the different files needs to be slightly sanitized in order to be loaded into the database without errors (mostly field names & quotes). In addition, the challenge statement asks to load into the database only a subset of the columns, so we can save time and resources by only loading the necessary fields. Because we want to be able to run an arbitrary number of these load tasks in parallel, loading the whole files in memory to process them can be prohibitive. In order to avoid Out Of Memory errors, we implemented an adapter for python's CSV reader which allows sanitizing the data and filtering out unnecessary fields in an streaming (buffered reader-like) fashion.  
 In order to process and load the data the adapter needs to know which fields to keep and their type. As with the loader this data is also incorporated into the corresponding dbt source metadata, together with mappings between the Kaggle dataset field names and their sanitized version (automatically cleaned names can get weird, and you need to know them in order to write the dbt models) and other csv configurations. Airflow takes care of parsing the dbt artifacts and using the metadata to build the loader tasks.
 
 ### Transform
@@ -107,8 +107,12 @@ One of our main goals was to minimize the required setup by running everything i
 ### On Custom vs Out-of-the-box Airflow operators
 We considered implementing custom Airflow operators to perform the ELT steps, but as we were not doing a lot of reuse and for the sake of simplicity we used the ol' reliable *PythonOperator* and *BashOperator*.
 
-<IMAGE HERE>  
-
+## Data quality
+Data quality is a tricky subject, as it requires knowledge about the incoming data in order to determine what qualifies as good or bad data. In our setup we can ensure some degree of data quality through the following means:
+ * **Loader**: The loader does some sanitizing on the data, and it's somewhat configurable to deal with exceptions (this could be greatly improved though). Because we are specifying a schema in order to load the data, if the `COPY` statement is not able to cast some value to the expected type the load will fail, preventing bad (as in 'unexpected') data from being loaded into the database.
+ * **dbt tests**: dbt tests are run against the raw data in order to ensure that it has the expected shape. They check for constraints like nulls being not allowed, uniqueness and valid categories in the different fields. If any of those fail, the pipeline won't continue. Nevertheless, defining this kind of tests requires knowledge about how the data is structured (or a profiler), and the static nature of the kaggle datasets defeats their purpose somewhat.  
+ In addition to the field-level tests, in order to check that there have been no issues in the data load we've implemented a test that checks if the raw data table has the expected number of rows. Although defining this number of rows is currently manual, the setup could be modified to allow Airflow to count the number of rows in the csv files and pass it to the test as a parameter, automating the process.
+ * **dbt base models**: The base models in dbt are meant for data cleaning & conforming. They don't incorporate any business logic but rather re-name, cast and clean the data. They could be used to remove identified invalid values, reconcile data and other cleaning tasks.
 
 ## Running the Kaggle ELT
 ### Requirements
@@ -142,5 +146,7 @@ The loaded raw data is available in the following tables:
  * `kaggle_raw.accident_information`
  * `kaggle_raw.vehicle_information`
 
+## Visualizing the data
+The visualizations together with their corresponding explanation are published by Dash to http://localhost:8050. Our current dash implementation has a tendency to crash, so if the webpage is not reachable once the pipeline has finished loading please run `docker-compose up dash` in a separate terminal to re-start the service.
 
 
