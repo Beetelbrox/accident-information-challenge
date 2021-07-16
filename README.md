@@ -73,16 +73,25 @@ Because some degree of data visualization es required, we chose Dash for its sim
 The proposed system has the following containerized services, deployed via docker-compose:
  * **airflow-db**: Postgres database storing Airflow's metadata.
  * **airflow-scheduler**: Airflow's scheduler.
- * **airflow-webserver**: Airflow's webserver. Web UI reachable @ http://localhost:8080, log in using the default credentials `airflow:airflow`.
- * **airflow-init**: Airflow initializer service. Initializes the database and creates default users.
- * **airflow-setup**: Airflow bootstrap service. Loads connections & variables into Airflow so they don't have to be manually introduced.
- * **postgres_db**: 'production' target database, for data load & dbt. Reachable @ `admin:admin@localhost:5433/postgres`.
+ * **airflow-webserver**: Airflow's webserver. Web UI reachable @ http://localhost:8080. For logging in use the default credentials `airflow:airflow`.
+ * **airflow-init**: Airflow initializer service. Initializes the Airflow metastore, create system users, etc.
+ * **airflow-setup**: Airflow bootstrap service. Loads connections & variables into Airflow simulating manual input to avoid having to actually introduce them each system startup.
+ * **postgres_db**: 'production' target database, for data load & dbt. Reachable @ `postgresql://admin:admin@localhost:5433/postgres`.
  * **dash**: Dash webapp. Web reachable @ http://localhost:8050
 
  ## Extract, Load & Transform
 The main components of the ELT pipelines are implemented as follows:
 ### Extract
+Files from a given Kaggle dataset are downloaded as CSV files using the Kaggle API using a valid authentication key. As the Kaggle datasets are not expected to change often we have considered the extraction as idempotent-ish and implemented a lazy download: Dataset files (compressed or uncompressed) won't be downloaded again if they already exist in the download location.  
+The names of the target dataset and its files are defined as part of the corresponding dbt source's metadata, which is collected and passed to the extractor by Airflow when building the DAG.
 
+### Load
+The downloaded CSV files are loaded into the postgres database using the `psycopg2` adapter. Data is loaded using the `COPY FROM` statement, which is postgres' recommended way of loading data in bulk. Although we are using ELT, the data in the different files needs to be slightly sanitized in order to be loaded into the database without errors (mostly field names & quotes). In addition, the challenge statement asks to load into the database only a subset of the columns, so we can save time and resources by only loading the necessary fields. Because we want to be able to run an arbitrary number of these load tasks in parallel, loading the whole files in memory to process them can be prohibitive. In order to avoid Out Of Memory errors, we implemented an adapter for python's CSV reader which allows sanitizing the data and filtering out unnecessary fields in an streaming (buffered reader-like) fashion.  
+In order to process and load the data the adapter needs to know which fields to keep and their type. As with the loader this data is also incorporated into the corresponding dbt source metadata, together with mappings between the Kaggle dataset field names and their sanitized version (automatically cleaned names can get weird, and you need to know them in order to write the dbt models) and other csv configurations. Airflow takes care of parsing the dbt artifacts and using the metadata to build the loader tasks.
+
+### Transform
+The transformation process is delegated to dbt, once the data has been loaded by the loader according to the definition in the dbt source it's already registered as such and ready to be used in dbt models. If no transformation were necessary, could be left as-is.  
+For our dbt project's structure we have followed [dbt's recommendations](https://discourse.getdbt.com/t/how-we-structure-our-dbt-projects/355) and included base, staging and presentation layers. For this particular case might be a bit of an overkill though, but would prove useful if more datasets are addded.
 
 ### On credential management
 For this challenge we are deploying locally several services that require credentials: 2 postgres databases, airflow, dbt. We have tried to minimize the amount of hardcoded credentials and made it as production-like as possible (within reason) by for example using airflow connections to store database credentials and parametrizing dbt profiles to pull credentials from environment variables that are passed into the airflow operator. Nevertheless, because we didn't want the end user to manually introduce credentials, the docker-compose and the bootstrap scripts contain hardcoded (mostly default) credentials to simulate an user introducing them in airflow or a secrets service providing them.  
