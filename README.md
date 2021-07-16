@@ -60,9 +60,19 @@ Airflow is one of the most popular schedulers/orchestrators nowadays and comes w
 #### dbt
 The Data Buding Tool (or *dbt*) provides the *T* of *ELT*, and it has gained a lot of traction over the last couple of years. It enables the definition of data transformations as a sequence (a DAG actually) of SQL SELECT statements, which abstracts away a significant chunk of the complexity of building data transformation pipelines. If you know how to write SQL (and a bit of Jinja), you can write pipelines in dbt. It also comes with data validation capabilites thanks to the dbt tests, as well as a mean of data documentation & discovery via the dbt docs (unfortunately, due to timing constraints the current implementation doesn't have a lot in terms of dbt docs). Although the transformations required for this challenge are minimal, we take advantage of the metadata required by dbt to be able to dynamically build pipelines based on dbt configurations.
 #### Docker & Docker-compose
-They are the de-facto tool for containerizing and deploying applications. Airflow provides has a quite nice docker-compose that we had based our implementation on.
+They are the de-facto tool for containerizing and deploying applications. Airflow provides a quite nice docker-compose that we had based our implementation on.
 #### Dash
 Because some degree of data visualization es required, we chose Dash for its simplicity and flexibility. We did not want to have a python script dumping images into a folder, so Dash allows you to create visualizations in python & plotly and publish them as a web page. We explored several other (free) visualization tools like Grafana or Superset that had nicer visuals or more features, but they required too much setup and/or were too specialized (Grafana struggles with data other than time series) so we chose simplicity.
+
+### On credential management
+For this challenge we are deploying locally several services that require credentials: 2 postgres databases, airflow, dbt. We have tried to minimize the amount of hardcoded credentials and made it as production-like as possible (within reason) by for example parametrizing dbt profiles to pull credentials from environment variables that are passed into the airflow operator and using airflow connections. Nevertheless, the docker-compose and the bootstrap scripts contain hardcoded (mostly default) credentials to simulate an user introducing them in airflow or a secrets service providing them.  
+The only credential that needs to be provided by the user is the Kaggle API key, which we are not able to fake so a real one needs to be used.
+
+### On environment management & the DockerOperator
+One of our main goals was to minimize the required setup by running everything inside containers. This posed a challenge for the common practice of creating docker images with the environment for each one of the tasks executed in the Airflow DAG and running them with DockerOperator, as the Docker-on-Docker setup can be tricky depending on the OS and requires dealing with permissions for the docker socket. We also considered running the tasks in PythonVirtualenvOperators, but as dbt is relatively heavy and the venv had to be created and torn down every task run, we weren't convinced with this option either. We eventually opted again for simplicity and packed dbt in the airflow image (luckily without any conflicts on the current versions), and used *PythonOperators* and *BashOperators* to run the tasks. In a production environment with (ideally) a managed service running Airflow we should use DockerImages to isolate the execution environments of the tasks.
+
+### On Custom vs Out-of-the-box Airflow operators
+We considered implementing custom Airflow operators to perform the ELT steps, but as we were not doing a lot of reuse and for the sake of simplicity we used the ol' reliable *PythonOperator* and *BashOperator*.
 
 <IMAGE HERE>  
 
